@@ -1,0 +1,9 @@
+build/
+.build/
+*.o
+*.dSYM/
+.DS_Store
+# Windows reference binaries kept out of git
+*.exe
+*.rar
+reference/
