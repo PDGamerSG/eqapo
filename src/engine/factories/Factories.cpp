@@ -8,6 +8,7 @@
 
 #include "engine/FilterEngine.h"
 #include "engine/Log.h"
+#include "engine/expr/Expression.h"
 #include "engine/StringHelper.h"
 #include "engine/filters/BiQuadFilter.h"
 #include "engine/filters/ChannelFilter.h"
@@ -31,7 +32,12 @@ FilterList one(Args&&... args) {
 
 // ------------------------------------------------------------------ Device
 
-void DeviceFilterFactory::initialize(FilterEngine* engine) { deviceString_ = engine->deviceString(); }
+void DeviceFilterFactory::initialize(FilterEngine* engine) {
+    deviceString_ = engine->deviceString();
+    engine->parser().defineConstant("deviceName", Value::fromString(engine->deviceName()));
+    engine->parser().defineConstant("connectionName", Value::fromString(engine->deviceUid()));
+    engine->parser().defineConstant("deviceGuid", Value::fromString(engine->deviceUid()));
+}
 
 FilterList DeviceFilterFactory::startOfConfiguration() {
     deviceMatches_ = true;
@@ -95,6 +101,167 @@ bool DeviceFilterFactory::matchDevice(const std::string& deviceString, const std
         if (matches) break;
     }
     return matches;
+}
+
+// ---------------------------------------------------------------------- If
+
+FilterList IfFilterFactory::startOfConfiguration() {
+    trueCount_ = 0;
+    falseCount_ = 0;
+    executeElse_ = false;
+    while (!trueCountStack_.empty()) trueCountStack_.pop();
+    return {};
+}
+
+FilterList IfFilterFactory::startOfFile(const std::string&) {
+    trueCountStack_.push(trueCount_);
+    trueCount_ = 0;
+    executeElse_ = false;
+    if (falseCount_ != 0) {
+        logMessage("File was included inside If that evaluated to false!");
+        falseCount_ = 0;
+    }
+    return {};
+}
+
+FilterList IfFilterFactory::createFilter(const std::string&, std::string& command, std::string& parameters) {
+    std::string expression = StringHelper::trim(parameters);
+    auto evaluate = [&](const char* what) -> bool {
+        try {
+            Value result = engine_->parser().evaluate(expression);
+            bool isTrue = result.toBool();
+            traceMessage(format("%s(%s) evaluated to %s", what, expression.c_str(), result.toString().c_str()));
+            return isTrue;
+        } catch (const std::exception& e) {
+            logMessage(format("Error while evaluating %s(%s): %s", what, expression.c_str(), e.what()));
+            return false;
+        }
+    };
+
+    if (command == "If") {
+        if (falseCount_ == 0) {
+            if (evaluate("If")) {
+                trueCount_++;
+            } else {
+                falseCount_++;
+                executeElse_ = true;
+            }
+        } else {
+            falseCount_++;
+        }
+    } else if (command == "ElseIf") {
+        if (falseCount_ == 0) {
+            if (trueCount_ == 0) logMessage("ElseIf without If!");
+            else {
+                falseCount_++;
+                trueCount_--;
+            }
+        } else if (falseCount_ == 1 && executeElse_) {
+            if (evaluate("ElseIf")) {
+                falseCount_--;
+                trueCount_++;
+                executeElse_ = false;
+            }
+        }
+    } else if (command == "Else") {
+        if (falseCount_ == 0) {
+            if (trueCount_ == 0) logMessage("Else without If!");
+            else {
+                falseCount_++;
+                trueCount_--;
+            }
+        } else if (falseCount_ == 1 && executeElse_) {
+            falseCount_--;
+            trueCount_++;
+            executeElse_ = false;
+        }
+    } else if (command == "EndIf") {
+        if (falseCount_ == 0) {
+            if (trueCount_ == 0) logMessage("EndIf without If!");
+            else trueCount_--;
+        } else {
+            falseCount_--;
+        }
+        if (falseCount_ == 0) executeElse_ = false;
+    }
+
+    if (falseCount_ > 0) command.clear();  // skip line for further factories
+    return {};
+}
+
+FilterList IfFilterFactory::endOfFile(const std::string&) {
+    if (trueCount_ != 0 || falseCount_ != 0) {
+        logMessage("If was not closed by EndIf!");
+        falseCount_ = 0;
+    }
+    if (!trueCountStack_.empty()) {
+        trueCount_ = trueCountStack_.top();
+        trueCountStack_.pop();
+    }
+    return {};
+}
+
+// -------------------------------------------------------------- Expression
+
+void ExpressionFilterFactory::initialize(FilterEngine* engine) {
+    engine_ = engine;
+    ExpressionEvaluator& p = engine->parser();
+    p.defineConstant("inputChannelCount", Value::fromNumber(engine->inputChannelCount(), true));
+    p.defineConstant("outputChannelCount", Value::fromNumber(engine->outputChannelCount(), true));
+    p.defineConstant("sampleRate", Value::fromNumber(engine->sampleRate(), false));
+    p.defineConstant("stage", Value::fromString("post-mix"));
+}
+
+FilterList ExpressionFilterFactory::createFilter(const std::string&, std::string& command, std::string& parameters) {
+    if (!command.empty() && command[0] == '#') return {};
+
+    // inline expressions: `...` (a backtick escaped as \` is literal)
+    bool inExpression = false, lastWasBackslash = false;
+    std::string output, expression;
+    for (size_t i = 0; i < parameters.size(); i++) {
+        char c = parameters[i];
+        if (c == '`') {
+            if (!inExpression) {
+                if (lastWasBackslash) output += c;
+                else inExpression = true;
+            } else if (lastWasBackslash) {
+                expression += c;
+            } else {
+                inExpression = false;
+                try {
+                    Value result = engine_->parser().evaluate(expression);
+                    output += result.toString();
+                    traceMessage("Inline expression " + expression + " evaluated to " + result.toString());
+                } catch (const std::exception& e) {
+                    logMessage("Error while evaluating inline expression " + expression + ": " + e.what());
+                }
+                expression.clear();
+            }
+            lastWasBackslash = false;
+        } else if (c == '\\') {
+            if (i + 1 >= parameters.size() || parameters[i + 1] != '`') {
+                if (inExpression) expression += c;
+                else output += c;
+            }
+            lastWasBackslash = true;
+        } else {
+            if (inExpression) expression += c;
+            else output += c;
+            lastWasBackslash = false;
+        }
+    }
+    parameters = output;
+
+    if (command == "Eval") {
+        try {
+            Value result = engine_->parser().evaluate(StringHelper::trim(parameters));
+            traceMessage("Expression " + StringHelper::trim(parameters) + " evaluated to " + result.toString());
+        } catch (const std::exception& e) {
+            logMessage("Error while evaluating expression " + StringHelper::trim(parameters) + ": " + e.what());
+        }
+        command.clear();
+    }
+    return {};
 }
 
 // ------------------------------------------------------------------- Stage

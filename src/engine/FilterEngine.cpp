@@ -17,6 +17,8 @@ namespace eqapo {
 FilterEngine::FilterEngine() {
     // Same order as Equalizer APO so gating/precedence rules match.
     factories_.push_back(std::make_unique<DeviceFilterFactory>());
+    factories_.push_back(std::make_unique<IfFilterFactory>());
+    factories_.push_back(std::make_unique<ExpressionFilterFactory>());
     factories_.push_back(std::make_unique<IncludeFilterFactory>());
     factories_.push_back(std::make_unique<StageFilterFactory>());
     factories_.push_back(std::make_unique<ChannelFilterFactory>());
@@ -52,6 +54,7 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
     maxFrameCount_ = maxFrameCount;
     transitionCounter_ = 0;
     transitionLength_ = static_cast<unsigned>(sampleRate / 100);
+    evaluator_.clearConstants();
     for (auto& f : factories_) f->initialize(this);
     traceMessage(format("%u channels for this device: %s", std::max(inputChannelCount, outputChannelCount),
                         StringHelper::join(ChannelHelper::getChannelNames(std::max(inputChannelCount, outputChannelCount)), " ")
@@ -79,6 +82,7 @@ bool FilterEngine::loadConfig(const std::string& configFilePath) {
     collectGarbage();
 
     lastLoadErrors_.clear();
+    evaluator_.clearVariables();
     allChannelNames_ = ChannelHelper::getChannelNames(std::max(inputChannelCount_, outputChannelCount_));
     currentChannelNames_ = allChannelNames_;
     filterInfos_.clear();

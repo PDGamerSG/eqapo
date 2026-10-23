@@ -23,6 +23,33 @@ private:
     bool deviceMatches_ = true;
 };
 
+// `If:` / `ElseIf:` / `Else:` / `EndIf:` — conditional execution based on expressions.
+class IfFilterFactory : public IFilterFactory {
+public:
+    void initialize(FilterEngine* engine) override { engine_ = engine; }
+    FilterList startOfConfiguration() override;
+    FilterList startOfFile(const std::string& configPath) override;
+    FilterList createFilter(const std::string& configPath, std::string& command, std::string& parameters) override;
+    FilterList endOfFile(const std::string& configPath) override;
+
+private:
+    FilterEngine* engine_ = nullptr;
+    unsigned trueCount_ = 0;
+    unsigned falseCount_ = 0;
+    bool executeElse_ = false;
+    std::stack<unsigned> trueCountStack_;
+};
+
+// `Eval:` lines and `inline` expressions inside any other command's parameters.
+class ExpressionFilterFactory : public IFilterFactory {
+public:
+    void initialize(FilterEngine* engine) override;
+    FilterList createFilter(const std::string& configPath, std::string& command, std::string& parameters) override;
+
+private:
+    FilterEngine* engine_ = nullptr;
+};
+
 // `Stage: pre-mix post-mix capture` — only `post-mix` exists on macOS.
 class StageFilterFactory : public IFilterFactory {
 public:

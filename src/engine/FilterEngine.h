@@ -8,6 +8,7 @@
 
 #include "engine/FilterConfiguration.h"
 #include "engine/IFilterFactory.h"
+#include "engine/expr/Expression.h"
 
 namespace eqapo {
 
@@ -53,6 +54,8 @@ public:
     const std::string& deviceName() const { return deviceName_; }
     const std::string& deviceUid() const { return deviceUid_; }
     std::string deviceString() const { return deviceName_ + " " + deviceUid_; }
+    // Expression evaluator shared by the If/Eval/inline factories (variables reset per load).
+    ExpressionEvaluator& parser() { return evaluator_; }
     // Channel selection during parsing.
     const Channels& currentChannelNames() const { return currentChannelNames_; }
     const Channels& allChannelNames() const { return allChannelNames_; }
@@ -69,6 +72,7 @@ private:
     void deleteAllConfigs();
 
     std::vector<std::unique_ptr<IFilterFactory>> factories_;
+    ExpressionEvaluator evaluator_;
 
     std::string deviceName_, deviceUid_;
     float sampleRate_ = 48000;
