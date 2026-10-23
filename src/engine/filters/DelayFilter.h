@@ -9,6 +9,8 @@ namespace eqapo {
 class DelayFilter : public IFilter {
 public:
     DelayFilter(double delay, bool isMs);
+    // Reads input after writing output, so it must not alias.
+    bool getInPlace() const override { return false; }
     Channels initialize(float sampleRate, unsigned maxFrameCount, const Channels& channelNames) override;
     void process(float** output, float** input, unsigned frameCount) override;
     std::string describe() const override;

@@ -11,7 +11,8 @@ namespace testutil {
 // second half of `seconds` seconds after the transient.
 inline double measureGainDb(eqapo::IFilter& filter, double freq, double sampleRate, double seconds = 1.0,
                             unsigned block = 256) {
-    const size_t total = static_cast<size_t>(seconds * sampleRate);
+    // whole number of blocks so block-based filters never see a partial block
+    const size_t total = ((static_cast<size_t>(seconds * sampleRate) + block - 1) / block) * block;
     std::vector<float> in(total), out(total);
     for (size_t i = 0; i < total; i++) in[i] = static_cast<float>(std::sin(2.0 * M_PI * freq * i / sampleRate));
     for (size_t pos = 0; pos < total; pos += block) {

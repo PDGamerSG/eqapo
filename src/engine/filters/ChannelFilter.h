@@ -9,6 +9,7 @@ namespace eqapo {
 class ChannelFilter : public IFilter {
 public:
     explicit ChannelFilter(std::vector<std::string> words);
+    bool getAllChannels() const override { return true; }
     bool getSelectChannels() const override { return true; }
     Channels initialize(float sampleRate, unsigned maxFrameCount, const Channels& channelNames) override;
     void process(float** output, float** input, unsigned frameCount) override {}
