@@ -15,7 +15,7 @@ drives Equalizer APO). The result must:
 - reproduce the exact filter mathematics and the exact configuration
   language of Equalizer APO 1.4 (same `config.txt` files work unchanged);
 - ship PC Equalizer's 20 fixed bands and every one of its 46 EQ presets
-  and 37 delay/echo presets, producing bit-identical config text;
+  and 36 delay/echo presets, producing bit-identical config text;
 - be very fast with very low CPU usage (target: under 1 % of one core for
   a 20-band stereo preset at 48 kHz; no allocations or locks on the audio
   thread);
@@ -102,7 +102,7 @@ eqapo (one Mach-O binary, Objective-C++ / C++20)
 │                StatusFile, Daemon (lifecycle, signals)
 └── cli/         sub-commands (see §7)
 gui/             EqualizerAPO.app — Swift/SwiftUI menu bar app = PC Equalizer front end
-presets/         eq/ (46) and delay/ (37) PC Equalizer presets, verbatim band values
+presets/         eq/ (46) and delay/ (36) PC Equalizer presets, verbatim band values
 tests/           C++ unit + integration tests (CTest), live self-test command
 ```
 
@@ -231,7 +231,7 @@ as PC Equalizer does, and the daemon applies it instantly.
   2800, 4000, 5660, 8000, 11300, 16000 Hz (PC Equalizer's band set).
 - Bandwidth per preset (BW Oct 0.5…3.0, default 1.2), preamp
   −20…+20 dB, master on/off, preset picker (46 built-in + user presets
-  saved into `presets/eq/`), delay/echo effect picker (37 built-in),
+  saved into `presets/eq/`), delay/echo effect picker (36 built-in),
   "Open config folder", "Edit config.txt", daemon status + start/stop,
   CPU/xrun readout from `status.json`.
 - Output format: PC Equalizer's exact layout:
