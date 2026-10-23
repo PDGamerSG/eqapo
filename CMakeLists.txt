@@ -30,3 +30,23 @@ target_compile_options(eqapo_tests PRIVATE ${EQAPO_WARNINGS})
 target_link_libraries(eqapo_tests PRIVATE eqapo_engine)
 enable_testing()
 add_test(NAME unit COMMAND eqapo_tests)
+
+# ---------------------------------------------------------------- eqapo binary
+file(GLOB CLI_SOURCES CONFIGURE_DEPENDS src/cli/*.mm src/daemon/*.mm src/audio/*.mm)
+add_executable(eqapo ${CLI_SOURCES})
+target_compile_options(eqapo PRIVATE ${EQAPO_WARNINGS} -fobjc-arc)
+target_compile_definitions(eqapo PRIVATE
+  EQAPO_VERSION="0.1.0"
+  EQAPO_SOURCE_PRESETS_DIR="${CMAKE_SOURCE_DIR}/presets")
+target_link_libraries(eqapo PRIVATE eqapo_engine
+  "-framework CoreAudio" "-framework AudioToolbox" "-framework Foundation" "-framework CoreServices")
+# Embedded Info.plist: gives the CLI a bundle identifier and the system-audio usage string for the TCC prompt.
+target_link_options(eqapo PRIVATE "LINKER:-sectcreate,__TEXT,__info_plist,${CMAKE_SOURCE_DIR}/src/cli/Info.plist")
+set_property(TARGET eqapo APPEND PROPERTY LINK_DEPENDS "${CMAKE_SOURCE_DIR}/src/cli/Info.plist")
+# Ad-hoc signature with a stable identifier so the privacy grant survives rebuilds of the same binary.
+add_custom_command(TARGET eqapo POST_BUILD
+  COMMAND codesign --force --sign - --identifier com.eqapo.daemon "$<TARGET_FILE:eqapo>"
+  COMMENT "Ad-hoc code signing eqapo")
+
+install(TARGETS eqapo RUNTIME DESTINATION bin)
+install(DIRECTORY presets/ DESTINATION share/eqapo/presets)

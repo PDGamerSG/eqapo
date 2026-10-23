@@ -1,0 +1,78 @@
+#delay/echo
+
+Preamp: 0 dB
+# tap = 16
+Copy: LD1=L RD1=R
+Copy: LD2=L RD2=R
+Copy: LD3=L RD3=R
+Copy: LD4=L RD4=R
+Copy: LD5=L RD5=R
+Copy: LD6=L RD6=R
+Copy: LD7=L RD7=R
+Copy: LD8=L RD8=R
+Copy: LD9=L RD9=R
+Copy: LD10=L RD10=R
+Copy: LD11=L RD11=R
+Copy: LD12=L RD12=R
+Copy: LD13=L RD13=R
+Copy: LD14=L RD14=R
+Copy: LD15=L RD15=R
+Copy: LD16=L RD16=R
+
+# delay
+Channel: LD1 RD1
+Delay: 00300.000 ms
+Channel: LD2 RD2
+Delay: 00480.000 ms
+Channel: LD3 RD3
+Delay: 00660.000 ms
+Channel: LD4 RD4
+Delay: 00840.000 ms
+Channel: LD5 RD5
+Delay: 01020.000 ms
+Channel: LD6 RD6
+Delay: 01200.000 ms
+Channel: LD7 RD7
+Delay: 01380.000 ms
+Channel: LD8 RD8
+Delay: 01560.000 ms
+Channel: LD9 RD9
+Delay: 01740.000 ms
+Channel: LD10 RD10
+Delay: 01920.000 ms
+Channel: LD11 RD11
+Delay: 02100.000 ms
+Channel: LD12 RD12
+Delay: 02280.000 ms
+Channel: LD13 RD13
+Delay: 02460.000 ms
+Channel: LD14 RD14
+Delay: 02640.000 ms
+Channel: LD15 RD15
+Delay: 02820.000 ms
+Channel: LD16 RD16
+Delay: 03000.000 ms
+
+# echo
+Copy: L=1*L+0.5*LD1 R=1*R+0*RD1
+Copy: L=1*L+0.43218*LD2 R=1*R+-0.07203*RD2
+Copy: L=1*L+0.3318*LD3 R=1*R+-0.13272*RD3
+Copy: L=1*L+0.23406*LD4 R=1*R+-0.175545*RD4
+Copy: L=1*L+0.147825*LD5 R=1*R+-0.1971*RD5
+Copy: L=1*L+0.07914*LD6 R=1*R+-0.19785*RD6
+Copy: L=1*L+0.03021*LD7 R=1*R+-0.18126*RD7
+Copy: L=1*L+0*LD8 R=1*R+-0.1458*RD8
+Copy: L=1*L+-0.01497*LD9 R=1*R+0.09481*RD9
+Copy: L=1*L+-0.01932*LD10 R=1*R+0.05796*RD10
+Copy: L=1*L+-0.01755*LD11 R=1*R+0.02925*RD11
+Copy: L=1*L+-0.01326*LD12 R=1*R+0.01326*RD12
+Copy: L=1*L+-0.0087*LD13 R=1*R+0.00522*RD13
+Copy: L=1*L+-0.00504*LD14 R=1*R+0.00168*RD14
+Copy: L=1*L+-0.002375*LD15 R=1*R+0.000375*RD15
+Copy: L=1*L+-0.001*LD16 R=1*R+0*RD16
+
+# end
+# decay = 3,130000
+# gain = 5000
+# damp = -12385,0
+# pan = 100_0,90_-15,75_-30,60_-45,45_-60,30_-75,15_-90,0_-100,-15_95,-30_90,-45_75,-60_60,-75_45,-90_30,-95_15,-100_0,

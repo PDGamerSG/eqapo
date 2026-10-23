@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.eqapo.daemon</string>
+	<key>CFBundleName</key>
+	<string>eqapo</string>
+	<key>CFBundleExecutable</key>
+	<string>eqapo</string>
+	<key>CFBundleVersion</key>
+	<string>0.1.0</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.2</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>eqapo equalizes system audio. It needs to read the audio that applications send to the output device so it can apply your equalizer settings.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>eqapo does not record the microphone; this entry exists only because macOS groups system-audio capture with microphone access.</string>
+</dict>
+</plist>
