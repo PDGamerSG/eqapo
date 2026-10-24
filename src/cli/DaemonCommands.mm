@@ -68,6 +68,20 @@ bool agentLoaded() {
     shell("launchctl print " + serviceTarget(), &rc);
     return rc == 0;
 }
+void unloadAgent(const std::string& plist) {
+    int rc = 0;
+    shell("launchctl bootout " + domainTarget() + " \"" + plist + "\"", &rc);
+    if (rc != 0) shell("launchctl bootout " + serviceTarget(), &rc);
+}
+bool loadAgent(const std::string& plist, std::string& output) {
+    int rc = 1;
+    for (int attempt = 0; attempt < 5; attempt++) {
+        output = shell("launchctl bootstrap " + domainTarget() + " \"" + plist + "\"", &rc);
+        if (rc == 0) return true;
+        usleep(200000);
+    }
+    return false;
+}
 std::string selfPath() {
     std::string dir = Paths::executableDir();
     return dir + "/eqapo";
@@ -99,15 +113,14 @@ int cmdInstall(const Args& args) {
         "\t<key>StandardOutPath</key>\n\t<string>" + Paths::logFile() + "</string>\n"
         "\t<key>StandardErrorPath</key>\n\t<string>" + Paths::logFile() + "</string>\n"
         "</dict>\n</plist>\n";
-    if (agentLoaded()) shell("launchctl bootout " + serviceTarget());
+    unloadAgent(plist);
     if (!Paths::writeFile(plist, content)) {
         std::fprintf(stderr, "error: cannot write %s\n", plist.c_str());
         return 1;
     }
-    int rc = 0;
-    std::string out = shell("launchctl bootstrap " + domainTarget() + " \"" + plist + "\"", &rc);
-    if (rc != 0) {
-        std::fprintf(stderr, "launchctl bootstrap failed (%d): %s\n", rc, out.c_str());
+    std::string out;
+    if (!loadAgent(plist, out)) {
+        std::fprintf(stderr, "launchctl bootstrap failed: %s\n", out.c_str());
         return 1;
     }
     std::printf("installed LaunchAgent %s\n  program: %s run\n  log:     %s\n"
@@ -131,10 +144,9 @@ int cmdLaunchctl(const Args& args) {
         return rc;
     }
     if (!agentLoaded()) {
-        out = shell("launchctl bootstrap " + domainTarget() + " \"" + plist + "\"", &rc);
-        if (rc != 0) {
+        if (!loadAgent(plist, out)) {
             std::fprintf(stderr, "launchctl bootstrap failed: %s\n", out.c_str());
-            return rc;
+            return 1;
         }
     }
     out = shell("launchctl kickstart " + std::string(action == "restart" ? "-k " : "") + serviceTarget(), &rc);

@@ -5,11 +5,13 @@
 	<key>CFBundleIdentifier</key>
 	<string>com.eqapo.gui</string>
 	<key>CFBundleName</key>
-	<string>EqualizerAPO</string>
+	<string>eqapo</string>
 	<key>CFBundleDisplayName</key>
-	<string>EqualizerAPO</string>
+	<string>eqapo</string>
 	<key>CFBundleExecutable</key>
-	<string>EqualizerAPO</string>
+	<string>eqapo-ui</string>
+	<key>CFBundleIconFile</key>
+	<string>eqapo.icns</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleVersion</key>
@@ -19,6 +21,8 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
 	<key>LSUIElement</key>
+	<true/>
+	<key>LSMultipleInstancesProhibited</key>
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>

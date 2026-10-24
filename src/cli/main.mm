@@ -18,7 +18,7 @@ namespace eqapo::cli {
 std::string bundledPresetsDir() {
     std::string exe = Paths::executableDir();
     const std::string candidates[] = {exe + "/../share/eqapo/presets", exe + "/presets", exe + "/../presets",
-                                      EQAPO_SOURCE_PRESETS_DIR};
+                                      exe + "/../Resources/presets", EQAPO_SOURCE_PRESETS_DIR};
     for (const std::string& c : candidates)
         if (!c.empty() && Paths::fileExists(c + "/eq")) return c;
     return "";

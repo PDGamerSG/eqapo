@@ -9,6 +9,7 @@
 #include "engine/filters/CopyFilter.h"
 #include "engine/filters/DelayFilter.h"
 #include "engine/filters/IIRFilter.h"
+#include "engine/OutputLimiter.h"
 #include "engine/filters/PreampFilter.h"
 
 using namespace eqapo;
@@ -21,6 +22,29 @@ TEST(preamp_scales_amplitude) {
     p.process(io, io, 16);
     CHECK_NEAR(l[3], 0.501187, 1e-5);
     CHECK_NEAR(r[3], -0.501187, 1e-5);
+}
+
+TEST(output_limiter_keeps_hot_signal_below_full_scale) {
+    OutputLimiter limiter;
+    limiter.initialize(48000, 2);
+    std::vector<float> left(128, 3.0f), right(128, -3.0f);
+    float* channels[2] = {left.data(), right.data()};
+    limiter.process(channels, 128);
+    for (size_t i = 0; i < left.size(); i++) {
+        CHECK(std::isfinite(left[i]) && std::fabs(left[i]) <= OutputLimiter::kCeiling + 1e-6f);
+        CHECK(std::isfinite(right[i]) && std::fabs(right[i]) <= OutputLimiter::kCeiling + 1e-6f);
+        CHECK_NEAR(left[i], -right[i], 1e-6);
+    }
+}
+
+TEST(output_limiter_leaves_safe_signal_unchanged) {
+    OutputLimiter limiter;
+    limiter.initialize(48000, 2);
+    std::vector<float> left(128, 0.25f), right(128, -0.25f);
+    float* channels[2] = {left.data(), right.data()};
+    limiter.process(channels, 128);
+    CHECK_NEAR(left[100], 0.25, 1e-6);
+    CHECK_NEAR(right[100], -0.25, 1e-6);
 }
 
 namespace {

@@ -14,6 +14,7 @@ final class EQModel: ObservableObject {
     }
     @Published var presetNames: [String] = []
     @Published var effectNames: [String] = []
+    @Published var launchAtLogin = false
     @Published var status = DaemonStatus()
     @Published var lastMessage: String = ""
     // transient UI state (see ContentView for why it is not @State)
@@ -25,13 +26,35 @@ final class EQModel: ObservableObject {
     private var suppressWrite = false
     private var writeTimer: Timer?
     private var statusTimer: Timer?
+    private var applyingLaunchAtLogin = false
 
     init() {
         reloadPresetLists()
         loadFromConfig()
+        launchAtLogin = EqapoLoginAgent.isConfigured
+        if !launchAtLogin {
+            // Register the plist for the next login without bootstrapping a
+            // second copy when the app was opened manually from a DMG.
+            try? EqapoLoginAgent.ensureConfigured()
+            launchAtLogin = EqapoLoginAgent.isConfigured
+        }
         refreshStatus()
         statusTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refreshStatus() }
+        }
+    }
+
+    func setLaunchAtLogin(_ enabled: Bool) {
+        guard !applyingLaunchAtLogin else { return }
+        applyingLaunchAtLogin = true
+        defer { applyingLaunchAtLogin = false }
+        do {
+            try EqapoLoginAgent.setEnabled(enabled)
+            launchAtLogin = enabled
+            lastMessage = enabled ? "eqapo will start at login" : "eqapo will stay off at login"
+        } catch {
+            launchAtLogin = EqapoLoginAgent.isConfigured
+            lastMessage = "Could not update startup: \(error.localizedDescription)"
         }
     }
 

@@ -12,6 +12,7 @@ let package = Package(
             name: "EqualizerAPO",
             dependencies: ["EqualizerAPOCore"],
             path: "Sources/EqualizerAPO",
+            resources: [.process("Assets")],
             linkerSettings: [.linkedFramework("SwiftUI"), .linkedFramework("AppKit")]),
         // Self-check run by make_app.sh (no XCTest in the Command Line Tools).
         .executableTarget(

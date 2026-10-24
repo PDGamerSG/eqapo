@@ -78,17 +78,25 @@ Room EQ Wizard exports (both "Generic" and "FBQ2496" formats, comma decimals,
 Not supported (Windows specific): VST plugins, loudness correction, the
 pre-mix/capture stages, registry and regex expression functions.
 
-## Menu bar app (PC Equalizer front end)
+## Installable macOS app
 
-`gui/` contains **EqualizerAPO.app**, a SwiftUI menu bar app with PC
-Equalizer's 20 bands (22 Hz … 16 kHz), bandwidth, preamp, preset and effect
-pickers and daemon status. It writes `config.txt` in PC Equalizer's exact
-format; the daemon applies it immediately.
+`eqapo.app` is a SwiftUI menu bar app with PC Equalizer's 20 bands (22 Hz … 16
+kHz), bandwidth, preamp, visible preset and effect menus, the supplied Midnight
+Pulse logo, startup-at-login control, and daemon status. It writes `config.txt`
+in PC Equalizer's exact format; the daemon applies it immediately. A final
+stereo-linked output limiter keeps hot EQ and volume boosts below digital full
+scale to prevent clipping distortion. The limiter is allocation-free on the
+audio thread and typical processing is under 1% of one CPU core.
 
 ```sh
-cd gui && ./make_app.sh      # builds build/EqualizerAPO.app (needs ../build/eqapo first)
-open build/EqualizerAPO.app
+./scripts/install_app.sh     # builds, tests, installs /Applications/eqapo.app, and starts the daemon
+./scripts/package_dmg.sh     # creates build/eqapo.dmg for drag-and-drop installation
 ```
+
+The app registers `com.eqapo.gui` as a per-user LaunchAgent so the menu bar
+control returns at login. The daemon has its own `com.eqapo.daemon` LaunchAgent
+and restarts independently if it exits. Grant macOS's System Audio Recording
+permission the first time the daemon starts.
 
 ## Offline tools
 
@@ -114,3 +122,16 @@ docs         design spec and implementation plan
 
 License: GPL-2.0-or-later (Equalizer APO is GPL-2.0; this is an independent
 re-implementation of its documented behaviour).
+
+## Credits and inspiration
+
+eqapo is inspired by the design, configuration language, and filter behaviour
+of [Equalizer APO](https://sourceforge.net/projects/equalizerapo/) and the
+20-band front end and preset collection from **PC Equalizer Free** by Bulent
+Sener. Their names, documentation, and preset data are credited here for the
+work that made this compatible macOS implementation possible; eqapo's engine
+code is an independent implementation.
+
+The **Midnight Pulse Equalizer Emblem** supplied with this project is used as
+eqapo's application icon and in-app branding, with credit to the supplied
+artwork source/project owner.

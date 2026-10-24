@@ -1,3 +1,4 @@
+import AppKit
 import EqualizerAPOCore
 import SwiftUI
 
@@ -21,7 +22,7 @@ struct ContentView: View {
             footer
         }
         .padding(14)
-        .frame(width: 790)
+        .frame(width: 820)
         .sheet(isPresented: $model.showSave) { savePresetSheet }
     }
 
@@ -29,36 +30,66 @@ struct ContentView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(systemName: "slider.vertical.3").font(.title2)
-            Text("EqualizerAPO").font(.headline)
+            logo
+            Text("eqapo").font(.headline)
             Spacer()
             Toggle("Enabled", isOn: $model.enabled).toggleStyle(.switch)
         }
     }
 
+    private var logo: some View {
+        Group {
+            if let url = Bundle.module.url(forResource: "eqapo-logo", withExtension: "png"),
+               let image = NSImage(contentsOf: url) {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+            } else {
+                Image(systemName: "waveform.path.ecg")
+                    .font(.title2)
+                    .foregroundStyle(.cyan)
+            }
+        }
+        .frame(width: 30, height: 30)
+        .padding(3)
+        .background(
+            LinearGradient(colors: [.blue.opacity(0.35), .purple.opacity(0.35)], startPoint: .topLeading, endPoint: .bottomTrailing),
+            in: RoundedRectangle(cornerRadius: 8)
+        )
+        .accessibilityLabel("eqapo logo")
+    }
+
     private var presetRow: some View {
-        HStack(spacing: 10) {
-            Text("Preset").foregroundStyle(.secondary)
-            Picker("Preset", selection: Binding(
-                get: { model.presetNames.contains(model.settings.name) ? model.settings.name : "" },
-                set: { if !$0.isEmpty { model.applyPreset($0) } })) {
-                Text(model.presetNames.contains(model.settings.name) ? "" : model.settings.name).tag("")
-                ForEach(model.presetNames, id: \.self) { Text($0).tag($0) }
+        HStack(spacing: 12) {
+            selector(label: "Preset", value: model.settings.name, items: model.presetNames) { model.applyPreset($0) }
+            selector(label: "Effect", value: model.settings.effect ?? "None", items: ["None"] + model.effectNames) {
+                model.applyEffect($0 == "None" ? nil : $0)
             }
-            .labelsHidden()
-            .frame(width: 230)
-            Text("Effect").foregroundStyle(.secondary)
-            Picker("Effect", selection: Binding(
-                get: { model.settings.effect ?? "" },
-                set: { model.applyEffect($0.isEmpty ? nil : $0) })) {
-                Text("None").tag("")
-                ForEach(model.effectNames, id: \.self) { Text($0).tag($0) }
-            }
-            .labelsHidden()
-            .frame(width: 230)
             Spacer()
-            Button("Save…") { model.saveName = model.settings.name == "Custom" ? "" : model.settings.name; model.showSave = true }
+            Button("Save") { model.saveName = model.settings.name == "Custom" ? "" : model.settings.name; model.showSave = true }
             Button("Flat") { model.resetFlat() }
+        }
+    }
+
+    private func selector(label: String, value: String, items: [String], onSelect: @escaping (String) -> Void) -> some View {
+        HStack(spacing: 8) {
+            Text(label).foregroundStyle(.secondary)
+            Menu {
+                ForEach(items, id: \.self) { item in
+                    Button(item) { onSelect(item) }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Text(value).lineLimit(1)
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.up.chevron.down").font(.caption2)
+                }
+                .padding(.horizontal, 10)
+                .frame(width: 238, height: 28, alignment: .leading)
+                .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+            }
+            .menuStyle(.borderlessButton)
         }
     }
 
@@ -106,7 +137,11 @@ struct ContentView: View {
                     Button("Open config folder") { model.openConfigFolder() }
                     Button("Reload presets") { model.reloadPresetLists() }
                     Divider()
-                    Button("Quit EqualizerAPO") { NSApp.terminate(nil) }
+                    Toggle("Start eqapo at login", isOn: Binding(
+                        get: { model.launchAtLogin },
+                        set: { model.setLaunchAtLogin($0) }))
+                    Divider()
+                    Button("Quit eqapo") { NSApp.terminate(nil) }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }

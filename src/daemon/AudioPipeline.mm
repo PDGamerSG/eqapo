@@ -183,6 +183,7 @@ bool AudioPipeline::startIO(FilterEngine& engine, std::string& error) {
         inPtrs_[c] = inPlanar_[c].data();
         outPtrs_[c] = outPlanar_[c].data();
     }
+    limiter_.initialize(static_cast<float>(format_.sampleRate), format_.outputChannels);
     blockMicros_ = format_.bufferFrames / format_.sampleRate * 1e6;
     callbacks_ = overloads_ = frameMismatches_ = 0;
     maxMicros_ = 0;
@@ -275,6 +276,7 @@ void AudioPipeline::ioCallback(const AudioBufferList* input, AudioBufferList* ou
     inputPeak_.store(inPeak, std::memory_order_relaxed);
 
     engine_->process(outPtrs_.data(), inPtrs_.data(), frames);
+    limiter_.process(outPtrs_.data(), frames);
 
     float outPeak = outputPeak_.load(std::memory_order_relaxed);
     for (unsigned i = 0; i < frames; i += 8) outPeak = std::max(outPeak, std::fabs(outPtrs_[0][i]));

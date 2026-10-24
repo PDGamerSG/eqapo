@@ -23,12 +23,37 @@ public enum PresetStore {
         return items.filter { $0.hasSuffix(".txt") }.map { String($0.dropLast(4)) }
             .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
-    public static func eqPresetNames() -> [String] { names(in: EqapoPaths.eqPresetsDir) }
-    public static func effectNames() -> [String] { names(in: EqapoPaths.delayPresetsDir) }
+
+    private static func bundledPresetsDir(_ kind: String) -> URL? {
+        Bundle.main.resourceURL?.appendingPathComponent("presets", isDirectory: true)
+            .appendingPathComponent(kind, isDirectory: true)
+    }
+
+    private static func names(local: URL, bundled: URL?) -> [String] {
+        let localNames = names(in: local)
+        if !localNames.isEmpty { return localNames }
+        return bundled.map { names(in: $0) } ?? []
+    }
+
+    public static func eqPresetNames() -> [String] {
+        names(local: EqapoPaths.eqPresetsDir, bundled: bundledPresetsDir("eq"))
+    }
+
+    public static func effectNames() -> [String] {
+        names(local: EqapoPaths.delayPresetsDir, bundled: bundledPresetsDir("delay"))
+    }
+
+    private static func presetURL(local: URL, bundled: URL?, name: String) -> URL? {
+        let localURL = local.appendingPathComponent(name + ".txt")
+        if FileManager.default.fileExists(atPath: localURL.path) { return localURL }
+        let bundledURL = bundled?.appendingPathComponent(name + ".txt")
+        if let bundledURL, FileManager.default.fileExists(atPath: bundledURL.path) { return bundledURL }
+        return nil
+    }
 
     public static func loadEQPreset(_ name: String) -> EQSettings? {
-        let url = EqapoPaths.eqPresetsDir.appendingPathComponent(name + ".txt")
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        guard let url = presetURL(local: EqapoPaths.eqPresetsDir, bundled: bundledPresetsDir("eq"), name: name),
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
         var settings = ConfigWriter.parse(text)
         settings?.name = name
         return settings

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "daemon/CoreAudioUtil.h"
+#include "engine/OutputLimiter.h"
 
 namespace eqapo {
 
@@ -65,6 +66,7 @@ private:
     Format format_;
     std::vector<std::vector<float>> inPlanar_, outPlanar_;
     std::vector<float*> inPtrs_, outPtrs_;
+    OutputLimiter limiter_;
     std::atomic<bool> running_{false};
     std::atomic<uint64_t> callbacks_{0}, overloads_{0}, frameMismatches_{0};
     std::atomic<double> lastMicros_{0}, maxMicros_{0}, avgLoad_{0};
