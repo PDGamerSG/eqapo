@@ -11,6 +11,11 @@ struct ContentView: View {
         hz >= 1000 ? String(format: "%gk", hz / 1000) : String(format: "%g", hz)
     }
 
+    private static let logoImage: NSImage? = {
+        guard let url = Bundle.module.url(forResource: "eqapo-logo", withExtension: "png") else { return nil }
+        return NSImage(contentsOf: url)
+    }()
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
@@ -39,24 +44,35 @@ struct ContentView: View {
 
     private var logo: some View {
         Group {
-            if let url = Bundle.module.url(forResource: "eqapo-logo", withExtension: "png"),
-               let image = NSImage(contentsOf: url) {
+            if let image = Self.logoImage {
                 Image(nsImage: image)
                     .resizable()
                     .interpolation(.high)
                     .scaledToFit()
+                    .frame(width: 26, height: 26)
             } else {
                 Image(systemName: "waveform.path.ecg")
                     .font(.title2)
                     .foregroundStyle(.cyan)
             }
         }
-        .frame(width: 30, height: 30)
-        .padding(3)
-        .background(
-            LinearGradient(colors: [.blue.opacity(0.35), .purple.opacity(0.35)], startPoint: .topLeading, endPoint: .bottomTrailing),
-            in: RoundedRectangle(cornerRadius: 8)
-        )
+        .frame(width: 34, height: 34)
+        .background {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(red: 0.025, green: 0.045, blue: 0.10).opacity(0.96))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.cyan.opacity(0.8), Color.blue.opacity(0.5), Color.purple.opacity(0.85)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                }
+        }
+        .shadow(color: Color.blue.opacity(0.22), radius: 4, y: 1)
         .accessibilityLabel("eqapo logo")
     }
 
@@ -94,14 +110,10 @@ struct ContentView: View {
     }
 
     private var bandGrid: some View {
-        HStack(alignment: .bottom, spacing: 2) {
-            ForEach(0 ..< pcEqualizerBands.count, id: \.self) { i in
-                BandSlider(label: Self.bandLabels[i], value: Binding(
-                    get: { model.settings.gains[i] },
-                    set: { model.setGain(i, $0) }))
-            }
-        }
-        .frame(maxWidth: .infinity)
+        BandGraph(values: Binding(
+            get: { model.settings.gains },
+            set: { model.settings.gains = $0 }
+        ), labels: Self.bandLabels, onChange: model.setGain)
         .opacity(model.enabled ? 1 : 0.45)
     }
 

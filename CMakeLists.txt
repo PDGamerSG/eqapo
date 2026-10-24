@@ -36,7 +36,7 @@ file(GLOB CLI_SOURCES CONFIGURE_DEPENDS src/cli/*.mm src/daemon/*.mm src/audio/*
 add_executable(eqapo ${CLI_SOURCES})
 target_compile_options(eqapo PRIVATE ${EQAPO_WARNINGS} -fobjc-arc)
 target_compile_definitions(eqapo PRIVATE
-  EQAPO_VERSION="0.1.1"
+  EQAPO_VERSION="0.1.2"
   EQAPO_SOURCE_PRESETS_DIR="${CMAKE_SOURCE_DIR}/presets")
 target_link_libraries(eqapo PRIVATE eqapo_engine
   "-framework CoreAudio" "-framework AudioToolbox" "-framework Foundation" "-framework CoreServices")
