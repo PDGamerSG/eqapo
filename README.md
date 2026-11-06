@@ -98,6 +98,22 @@ control returns at login. The daemon has its own `com.eqapo.daemon` LaunchAgent
 and restarts independently if it exits. Grant macOS's System Audio Recording
 permission the first time the daemon starts.
 
+## Releases
+
+### eqapo 0.1.3
+
+- Fixed the menu-bar popover so clicks outside the panel close it immediately,
+  including clicks delivered to another application, while clicks inside the
+  panel keep it open.
+- Made **Headphones 06** the first-run default preset. The app writes that
+  preset into a missing or first-run placeholder configuration so the daemon
+  uses it immediately.
+- Preserved existing saved configurations and user-selected presets on later
+  launches.
+- Updated the packaged app and command-line daemon version to `0.1.3`.
+- Verified the installed app, launch agents, bundled preset resources, release
+  build, preset round-trip check, and native test suite.
+
 ## Offline tools
 
 ```sh

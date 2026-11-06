@@ -6,7 +6,12 @@ import Foundation
 /// Every change is written to config.txt (debounced), which the daemon applies at once.
 @MainActor
 final class EQModel: ObservableObject {
-    @Published var settings: EQSettings = .flat {
+    private static let defaultPresetName = "Headphones 06"
+    private static var defaultSettings: EQSettings {
+        PresetStore.loadEQPreset(defaultPresetName) ?? .flat
+    }
+
+    @Published var settings: EQSettings = EQModel.defaultSettings {
         didSet { if !suppressWrite { scheduleWrite() } }
     }
     @Published var enabled: Bool = true {
@@ -63,12 +68,24 @@ final class EQModel: ObservableObject {
         effectNames = PresetStore.effectNames()
     }
 
-    /// Reads config.txt; keeps the sliders flat when it is not a 20-band file.
+    /// Reads config.txt, preserving saved settings and selecting the default
+    /// preset when the daemon has only created its first-run placeholder.
     func loadFromConfig() {
+        var shouldWriteDefault = false
         suppressWrite = true
-        defer { suppressWrite = false }
-        guard let text = PresetStore.readConfig() else { return }
-        if text.hasPrefix("# EqualizerAPO: equalizer switched off") {
+        defer {
+            suppressWrite = false
+            if shouldWriteDefault { writeConfig() }
+        }
+
+        guard let text = PresetStore.readConfig() else {
+            settings = Self.defaultSettings
+            shouldWriteDefault = true
+            return
+        }
+        if text.hasPrefix("# EqualizerAPO: equalizer switched off") ||
+            text.hasPrefix("# eqapo: processing disabled") {
+            settings = .flat
             enabled = false
             return
         }
@@ -79,7 +96,21 @@ final class EQModel: ObservableObject {
             // `eqapo preset apply` writes an include line; load that preset's bands.
             var name = String(include.dropFirst("Include: presets/eq/".count))
             if name.hasSuffix(".txt") { name.removeLast(4) }
-            if let preset = PresetStore.loadEQPreset(name) { settings = preset }
+            if let preset = PresetStore.loadEQPreset(name) {
+                settings = preset
+                enabled = true
+            }
+        } else if text.hasPrefix("# eqapo configuration") || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Replace the daemon's first-run placeholder with the requested
+            // default preset while leaving hand-written configs untouched.
+            settings = Self.defaultSettings
+            enabled = true
+            shouldWriteDefault = true
+        } else {
+            // Keep the UI neutral when the config is valid Equalizer APO text
+            // but not a 20-band preset file that this front end can display.
+            settings = .flat
+            enabled = true
         }
     }
 

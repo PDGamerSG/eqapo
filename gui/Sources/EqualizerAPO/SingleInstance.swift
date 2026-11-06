@@ -12,6 +12,7 @@ final class EqapoApplicationDelegate: NSObject, NSApplicationDelegate {
     private let model = EQModel()
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
+    private var eventMonitors: [Any] = []
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         let directory = EqapoPaths.root
@@ -45,6 +46,7 @@ final class EqapoApplicationDelegate: NSObject, NSApplicationDelegate {
         popover.animates = false
         self.statusItem = item
         self.popover = popover
+        installPopoverDismissMonitors()
     }
 
     @objc private func togglePopover(_ sender: Any?) {
@@ -56,7 +58,49 @@ final class EqapoApplicationDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// A transient popover does not consistently receive clicks delivered to
+    /// another application when this menu-bar app is an LSUIElement. Monitor
+    /// both local and global mouse events so it closes outside the panel.
+    private func installPopoverDismissMonitors() {
+        let mouseDowns: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: mouseDowns, handler: { [weak self] event in
+            self?.dismissPopoverIfNeeded(for: event)
+            return event
+        }) {
+            eventMonitors.append(monitor)
+        }
+
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: mouseDowns, handler: { [weak self] event in
+            self?.dismissPopoverIfNeeded(for: event)
+        }) {
+            eventMonitors.append(monitor)
+        }
+    }
+
+    private func dismissPopoverIfNeeded(for event: NSEvent) {
+        guard let popover, popover.isShown,
+              let popoverFrame = popover.contentViewController?.view.window?.frame else { return }
+
+        let point: NSPoint
+        if let window = event.window {
+            point = window.convertToScreen(NSRect(origin: event.locationInWindow, size: .zero)).origin
+        } else {
+            point = NSEvent.mouseLocation
+        }
+
+        if popoverFrame.contains(point) { return }
+        if let button = statusItem?.button,
+           let window = button.window,
+           window.convertToScreen(button.frame).contains(point) {
+            return
+        }
+        popover.close()
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
+        eventMonitors.forEach(NSEvent.removeMonitor)
+        eventMonitors.removeAll()
         guard lockFileDescriptor >= 0 else { return }
         flock(lockFileDescriptor, LOCK_UN)
         close(lockFileDescriptor)
