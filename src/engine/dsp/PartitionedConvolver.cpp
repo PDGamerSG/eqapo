@@ -1,6 +1,8 @@
 #include "engine/dsp/PartitionedConvolver.h"
 
+#if defined(__APPLE__)
 #include <Accelerate/Accelerate.h>
+#endif
 
 #include <algorithm>
 #include <cstring>
@@ -42,14 +44,25 @@ void PartitionedConvolver::process(const float* in, float* out) {
 
     // multiply-accumulate into the frequency-domain delay line
     const size_t numMix = numPartitions_ + 1;
+#if defined(__APPLE__)
     const int n = static_cast<int>(bins_);
+#endif
     for (size_t p = 0; p < numPartitions_; p++) {
         size_t slot = (p + mixPos_) % numMix;
+#if defined(__APPLE__)
         DSPSplitComplex x{inRe_.data(), inIm_.data()};
         DSPSplitComplex hh{hRe_[p].data(), hIm_[p].data()};
         DSPSplitComplex y{mixRe_[slot].data(), mixIm_[slot].data()};
         // y += x * h  (conjugate flag 1 = normal multiply)
         vDSP_zvma(&x, 1, &hh, 1, &y, 1, &y, 1, static_cast<vDSP_Length>(n));
+#else
+        for (size_t k = 0; k < bins_; k++) {
+            float xr = inRe_[k], xi = inIm_[k];
+            float hr = hRe_[p][k], hi = hIm_[p][k];
+            mixRe_[slot][k] += xr * hr - xi * hi;
+            mixIm_[slot][k] += xr * hi + xi * hr;
+        }
+#endif
     }
 
     // inverse transform of the current slot and overlap-add
@@ -58,7 +71,11 @@ void PartitionedConvolver::process(const float* in, float* out) {
     fft_->inverse(re.data(), im.data(), timeBuf_.data());
     std::fill(re.begin(), re.end(), 0.0f);
     std::fill(im.begin(), im.end(), 0.0f);
+#if defined(__APPLE__)
     vDSP_vadd(timeBuf_.data(), 1, history_.data(), 1, out, 1, flen);
+#else
+    for (size_t i = 0; i < flen; i++) out[i] = timeBuf_[i] + history_[i];
+#endif
     std::memcpy(history_.data(), timeBuf_.data() + flen, flen * sizeof(float));
     mixPos_ = (mixPos_ + 1) % numMix;
 }

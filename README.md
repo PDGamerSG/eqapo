@@ -1,4 +1,4 @@
-# eqapo — Equalizer APO + PC Equalizer for macOS
+# eqapo — Equalizer APO + PC Equalizer for macOS and Linux
 
 A from-scratch macOS port of the Windows pair **Equalizer APO** (system-wide
 parametric equalizer driven by a text configuration) and **PC Equalizer**
@@ -9,6 +9,9 @@ PC Equalizer presets.
 
 * macOS 14.2 or newer, Apple silicon or Intel. No kernel extension, no
   virtual audio driver, no `sudo`.
+* Linux builds provide the portable engine, presets, WAV processing, and
+  benchmark CLI. Live system-wide capture is currently macOS-only because
+  the daemon uses Core Audio process taps.
 * CPU: about 0.3 % of one core for a 20-band stereo preset at 48 kHz.
 * Latency: one device buffer (default 512 frames = 10.7 ms at 48 kHz).
 
@@ -27,7 +30,8 @@ pane if you need to change it later.)
 
 ## Build
 
-Requires the Command Line Tools (`xcode-select --install`) and CMake 3.25+.
+Requires CMake 3.25+. macOS also needs the Command Line Tools
+(`xcode-select --install`). Linux builds need a C++20 compiler and pthreads.
 
 ```sh
 cmake -S . -B build && cmake --build build -j8
@@ -37,7 +41,14 @@ cmake -S . -B build && cmake --build build -j8
 sudo cmake --install build   # installs /usr/local/bin/eqapo and the presets
 ```
 
+On Linux, the same build produces the offline CLI. It uses
+`$XDG_CONFIG_HOME/eqapo` by default, or `EQAPO_HOME` when set.
+
 ## Use
+
+The daemon, live device controls, and menu-bar app commands below are
+macOS-only. Linux builds support the offline processing, preset, generation,
+analysis, and benchmark commands.
 
 ```sh
 eqapo install                # LaunchAgent: starts at login, restarts if it exits
@@ -99,6 +110,23 @@ and restarts independently if it exits. Grant macOS's System Audio Recording
 permission the first time the daemon starts.
 
 ## Releases
+
+### eqapo 0.1.4
+
+- Restored the project under `Data/Random projects/eqapo` after the original
+  `Equalizer apo for mac` source folder was removed.
+- Added a Linux build for the portable engine and offline CLI, including WAV
+  processing, presets, benchmarks, and the existing test suite.
+- Added Linux CI coverage and a Linux tarball packaging script.
+- Updated the macOS app and daemon version to `0.1.4`.
+
+Release assets:
+
+- `eqapo-0.1.4-macos-arm64.dmg` is the installable macOS menu-bar app.
+- `eqapo-0.1.4-linux-arm64.tar.gz` contains the Linux CLI and presets.
+
+The Linux package does not include the macOS menu-bar app or live Core Audio
+process-tap daemon.
 
 ### eqapo 0.1.3
 

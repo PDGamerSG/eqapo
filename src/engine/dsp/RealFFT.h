@@ -1,10 +1,12 @@
 #pragma once
 #include <cstddef>
+#include <complex>
 #include <vector>
 
 namespace eqapo {
 
-// Real-input FFT of power-of-two size N built on Accelerate vDSP.
+// Real-input FFT of power-of-two size N. macOS uses Accelerate vDSP and Linux
+// uses the bundled radix-2 implementation.
 // forward(): N real samples -> N/2+1 complex bins (re/im arrays), unnormalised
 //            (bin k = sum x[n] e^{-2πi kn/N}).
 // inverse(): N/2+1 bins -> N real samples, unnormalised (caller divides by N).
@@ -23,8 +25,12 @@ public:
 private:
     size_t n_;
     unsigned log2n_;
+#if defined(__APPLE__)
     void* setup_;  // FFTSetup
     mutable std::vector<float> scratchRe_, scratchIm_;
+#else
+    mutable std::vector<std::complex<float>> scratch_;
+#endif
 };
 
 }  // namespace eqapo

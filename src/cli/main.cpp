@@ -1,4 +1,4 @@
-// eqapo — Equalizer APO + PC Equalizer for macOS. Command line entry point.
+// eqapo — Equalizer APO + PC Equalizer command line entry point.
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -27,6 +27,7 @@ std::string bundledPresetsDir() {
 
 namespace {
 void usage() {
+#if defined(__APPLE__)
     std::printf(
         "eqapo %s — system-wide parametric equalizer for macOS (Equalizer APO configuration syntax)\n\n"
         "Daemon:\n"
@@ -47,6 +48,19 @@ void usage() {
         "  eqapo analyze FILE FREQ [FREQ ...]\n"
         "  eqapo selftest                        live end-to-end check of the running pipeline\n",
         EQAPO_VERSION, eqapo::Paths::configFile().c_str());
+#else
+    std::printf(
+        "eqapo %s — offline parametric equalizer (Equalizer APO configuration syntax)\n\n"
+        "Configuration (%s):\n"
+        "  eqapo config path | show | reset | off\n"
+        "  eqapo preset list | show NAME | apply NAME [--delay EFFECT]\n"
+        "Offline tools:\n"
+        "  eqapo process IN OUT.wav [--config FILE] [--frames N]\n"
+        "  eqapo bench [--config FILE] [--rate HZ] [--frames N] [--channels N]\n"
+        "  eqapo gen OUT.wav [--rate HZ] [--seconds S] [--tone HZ:AMP ...]\n"
+        "  eqapo analyze FILE FREQ [FREQ ...]\n",
+        EQAPO_VERSION, eqapo::Paths::configFile().c_str());
+#endif
 }
 }  // namespace
 
@@ -66,6 +80,7 @@ int main(int argc, char** argv) {
     if (cmd == "analyze") return cmdAnalyze(args);
     if (cmd == "preset") return cmdPreset(args);
     if (cmd == "config") return cmdConfig(args);
+#if defined(__APPLE__)
     if (cmd == "devices") return cmdDevices(args);
     if (cmd == "run") return cmdRun(args);
     if (cmd == "install" || cmd == "uninstall") return cmdInstall(Args{cmd});
@@ -74,6 +89,7 @@ int main(int argc, char** argv) {
     if (cmd == "reload") return cmdReload(args);
     if (cmd == "permission") return cmdPermission(args);
     if (cmd == "selftest") return cmdSelftest(args);
+#endif
     if (cmd == "version" || cmd == "--version") {
         std::printf("eqapo %s\n", EQAPO_VERSION);
         return 0;

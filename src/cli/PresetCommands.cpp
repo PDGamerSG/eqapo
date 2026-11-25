@@ -117,8 +117,14 @@ int cmdConfig(const Args& args) {
         return 0;
     }
     if (sub == "edit") {
+#if defined(__APPLE__)
         std::string cmd = "open -t \"" + Paths::configFile() + "\"";
         return std::system(cmd.c_str());
+#else
+        std::fprintf(stderr, "config edit is not available in the Linux CLI; edit %s directly\n",
+                     Paths::configFile().c_str());
+        return 1;
+#endif
     }
     if (sub == "reset") {
         unlink(Paths::configFile().c_str());

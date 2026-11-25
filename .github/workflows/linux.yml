@@ -1,0 +1,25 @@
+name: Linux build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y cmake g++
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ./build/eqapo_tests
+      - name: Smoke test
+        run: |
+          EQAPO_HOME="$RUNNER_TEMP/eqapo" ./build/eqapo gen "$RUNNER_TEMP/tone.wav" --seconds 1 --tone 100:0.2
+          EQAPO_HOME="$RUNNER_TEMP/eqapo" ./build/eqapo process "$RUNNER_TEMP/tone.wav" "$RUNNER_TEMP/processed.wav"
+          test -s "$RUNNER_TEMP/processed.wav"

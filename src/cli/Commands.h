@@ -13,6 +13,7 @@ int cmdGen(const Args& args);       // gen out.wav [--rate HZ] [--seconds S] [--
 int cmdAnalyze(const Args& args);   // analyze file.wav FREQ [FREQ...]  -> dBFS per tone per channel
 int cmdPreset(const Args& args);    // preset list | show NAME | apply NAME [--delay NAME]
 int cmdConfig(const Args& args);    // config path | edit | reset | show
+#if defined(__APPLE__)
 int cmdDevices(const Args& args);   // devices
 int cmdRun(const Args& args);       // run [--buffer N] [--trace]
 int cmdInstall(const Args& args);   // install | uninstall
@@ -21,6 +22,7 @@ int cmdStatus(const Args& args);    // status
 int cmdReload(const Args& args);    // reload
 int cmdPermission(const Args& args); // permission
 int cmdSelftest(const Args& args);  // selftest [--seconds S]
+#endif
 
 // shared helpers
 std::string optionValue(const Args& args, const std::string& name, const std::string& fallback);

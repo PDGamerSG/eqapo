@@ -14,7 +14,11 @@ struct Paths {
     static std::string pidFile();           // root/eqapo.pid
     static std::string logFile();           // ~/Library/Logs/eqapo.log
     static std::string launchAgentPlist();  // ~/Library/LaunchAgents/com.eqapo.daemon.plist
+#if defined(__APPLE__)
     static constexpr const char* launchAgentLabel = "com.eqapo.daemon";
+#else
+    static constexpr const char* launchAgentLabel = "eqapo";
+#endif
 
     static bool ensureDirectory(const std::string& path);
     static bool fileExists(const std::string& path);

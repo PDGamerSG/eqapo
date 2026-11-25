@@ -3,10 +3,11 @@
 set -eu
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 OUT="${1:-$ROOT/build/eqapo.dmg}"
+BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
 STAGE=$(mktemp -d "${TMPDIR:-/tmp}/eqapo-dmg.XXXXXX")
 trap 'rm -rf "$STAGE"' EXIT INT TERM
 
-"$ROOT/gui/make_app.sh" "$ROOT/build/eqapo"
+"$ROOT/gui/make_app.sh" "$BUILD_DIR/eqapo"
 ditto --rsrc --extattr "$ROOT/gui/build/eqapo.app" "$STAGE/eqapo.app"
 ln -s /Applications "$STAGE/Applications"
 mkdir -p "$(dirname "$OUT")"
