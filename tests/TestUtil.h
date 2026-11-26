@@ -1,11 +1,34 @@
 // Shared helpers for DSP tests.
 #pragma once
 #include <cmath>
+#include <filesystem>
+#include <random>
 #include <vector>
 
 #include "engine/IFilter.h"
 
 namespace testutil {
+
+inline std::string tempPath(const std::string& name) {
+    struct TempDirectory {
+        std::filesystem::path path;
+
+        TempDirectory() {
+            const auto base = std::filesystem::temp_directory_path();
+            std::random_device random;
+            do {
+                path = base / ("eqapo-test-" + std::to_string(random()));
+            } while (!std::filesystem::create_directory(path));
+        }
+
+        ~TempDirectory() {
+            std::error_code error;
+            std::filesystem::remove_all(path, error);
+        }
+    };
+    static const TempDirectory temp;
+    return (temp.path / name).generic_string();
+}
 
 // Steady-state gain (dB) of a mono filter for a sine at `freq`, measured over the
 // second half of `seconds` seconds after the transient.

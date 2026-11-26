@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
+project(eqapo VERSION 0.1.5 LANGUAGES C CXX)
 if(APPLE)
-  project(eqapo LANGUAGES C CXX OBJCXX)
-else()
-  project(eqapo LANGUAGES C CXX)
+  enable_language(OBJCXX)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
@@ -16,7 +15,16 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 find_package(Threads REQUIRED)
-set(EQAPO_WARNINGS -Wall -Wextra -Wno-unused-parameter)
+if(MSVC)
+  set(EQAPO_WARNINGS /W4 /wd4100)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  add_compile_definitions(_USE_MATH_DEFINES)
+else()
+  set(EQAPO_WARNINGS -Wall -Wextra -Wno-unused-parameter)
+endif()
+if(MINGW)
+  add_compile_definitions(__USE_MINGW_ANSI_STDIO=1)
+endif()
 
 # ---------------------------------------------------------------- engine
 file(GLOB ENGINE_SOURCES CONFIGURE_DEPENDS
@@ -78,7 +86,7 @@ endif()
 add_executable(eqapo ${CLI_SOURCES})
 target_compile_options(eqapo PRIVATE ${EQAPO_WARNINGS})
 target_compile_definitions(eqapo PRIVATE
-  EQAPO_VERSION="0.1.4"
+  EQAPO_VERSION="${PROJECT_VERSION}"
   EQAPO_SOURCE_PRESETS_DIR="${CMAKE_SOURCE_DIR}/presets")
 target_link_libraries(eqapo PRIVATE eqapo_engine eqapo_audio)
 if(APPLE)
@@ -92,7 +100,34 @@ if(APPLE)
   add_custom_command(TARGET eqapo POST_BUILD
     COMMAND codesign --force --sign - --identifier com.eqapo.daemon "$<TARGET_FILE:eqapo>"
     COMMENT "Ad-hoc code signing eqapo")
+elseif(MINGW)
+  target_link_options(eqapo PRIVATE -static)
+  target_link_options(eqapo_tests PRIVATE -static)
 endif()
 
 install(TARGETS eqapo RUNTIME DESTINATION bin)
 install(DIRECTORY presets/ DESTINATION share/eqapo/presets)
+
+set(CPACK_PACKAGE_VENDOR "PDGamerSG")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Offline Equalizer APO-compatible WAV processing and presets")
+if(WIN32 AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|amd64|x86_64|X86_64)$" AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  install(FILES README.md COPYING DESTINATION .)
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
+  set(CPACK_GENERATOR NSIS)
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY eqapo)
+  set(CPACK_PACKAGE_FILE_NAME "eqapo-${PROJECT_VERSION}-windows-x64-setup")
+  set(CPACK_NSIS_DISPLAY_NAME "eqapo offline equalizer")
+  set(CPACK_NSIS_MODIFY_PATH ON)
+  # Select the native x64 NSIS stub and plugins for the x64 installer.
+  set(CPACK_NSIS_DEFINES "Target amd64-unicode")
+  include(CPack)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  install(FILES README.md packaging/debian/copyright DESTINATION share/doc/eqapo)
+  set(CPACK_GENERATOR DEB)
+  set(CPACK_PACKAGING_INSTALL_PREFIX /usr)
+  set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+  set(CPACK_DEBIAN_PACKAGE_MAINTAINER "PDGamerSG <177869559+PDGamerSG@users.noreply.github.com>")
+  set(CPACK_DEBIAN_PACKAGE_SECTION sound)
+  set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+  include(CPack)
+endif()

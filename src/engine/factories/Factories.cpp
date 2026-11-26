@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <regex>
 #include <sstream>
 
@@ -323,11 +324,8 @@ std::string IncludeFilterFactory::resolvePath(const std::string& configPath, con
     value = StringHelper::trim(value);
     for (char& c : value)
         if (c == '\\') c = '/';
-    if (!value.empty() && value[0] == '/') return value;
-    std::string dir = configPath;
-    size_t slash = dir.find_last_of('/');
-    dir = slash == std::string::npos ? "" : dir.substr(0, slash + 1);
-    return dir + value;
+    const std::filesystem::path path(value);
+    return (std::filesystem::path(configPath).parent_path() / path).generic_string();
 }
 
 FilterList IncludeFilterFactory::createFilter(const std::string& configPath, std::string& command, std::string& parameters) {

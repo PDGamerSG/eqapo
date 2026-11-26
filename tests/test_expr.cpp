@@ -22,7 +22,7 @@ bool throws(ExpressionEvaluator& e, const std::string& s) {
     return false;
 }
 std::string writeTemp(const std::string& name, const std::string& content) {
-    std::string path = "/tmp/eqapo_expr_" + name;
+    std::string path = testutil::tempPath("expr-" + name);
     std::ofstream(path) << content;
     return path;
 }

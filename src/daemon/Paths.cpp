@@ -1,25 +1,38 @@
 #include "daemon/Paths.h"
 
-#include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
 namespace eqapo {
 
+namespace fs = std::filesystem;
+
 std::string Paths::home() {
+#if defined(_WIN32)
+    const char* h = std::getenv("USERPROFILE");
+#else
     const char* h = std::getenv("HOME");
-    return h ? h : "/tmp";
+#endif
+    return h && *h ? h : fs::temp_directory_path().string();
 }
 
 std::string Paths::root() {
     const char* override = std::getenv("EQAPO_HOME");
     if (override && *override) return override;
-    const char* xdg = std::getenv("XDG_CONFIG_HOME");
-    return std::string(xdg && *xdg ? xdg : (home() + "/.config")) + "/eqapo";
+#if defined(_WIN32)
+    const char* config = std::getenv("LOCALAPPDATA");
+    const std::string defaultConfig = home() + "/AppData/Local";
+#else
+    const char* config = std::getenv("XDG_CONFIG_HOME");
+    const std::string defaultConfig = home() + "/.config";
+#endif
+    return (config && *config ? std::string(config) : defaultConfig) + "/eqapo";
 }
 
 std::string Paths::configDir() { return root() + "/config"; }
@@ -31,28 +44,14 @@ std::string Paths::logFile() { return root() + "/eqapo.log"; }
 std::string Paths::launchAgentPlist() { return root() + "/eqapo.service"; }
 
 bool Paths::ensureDirectory(const std::string& path) {
-    std::string current;
-    std::istringstream parts(path);
-    std::string part;
-    while (std::getline(parts, part, '/')) {
-        if (part.empty()) {
-            current += "/";
-            continue;
-        }
-        current += part + "/";
-        struct stat st{};
-        if (stat(current.c_str(), &st) == 0) {
-            if (!S_ISDIR(st.st_mode)) return false;
-            continue;
-        }
-        if (mkdir(current.c_str(), 0755) != 0) return false;
-    }
-    return true;
+    std::error_code error;
+    fs::create_directories(path, error);
+    return !error;
 }
 
 bool Paths::fileExists(const std::string& path) {
-    struct stat st{};
-    return stat(path.c_str(), &st) == 0;
+    std::error_code error;
+    return fs::exists(path, error);
 }
 
 std::string Paths::readFile(const std::string& path) {
@@ -72,23 +71,24 @@ bool Paths::writeFile(const std::string& path, const std::string& content) {
 bool Paths::writeFileAtomic(const std::string& path, const std::string& content) {
     std::string tmp = path + ".tmp";
     if (!writeFile(tmp, content)) return false;
-    return rename(tmp.c_str(), path.c_str()) == 0;
+    std::error_code error;
+    fs::rename(tmp, path, error);
+    return !error;
 }
 
-static void copyTree(const std::string& from, const std::string& to) {
-    DIR* d = opendir(from.c_str());
-    if (!d) return;
-    Paths::ensureDirectory(to);
-    while (dirent* e = readdir(d)) {
-        std::string name = e->d_name;
-        if (name == "." || name == "..") continue;
-        std::string src = from + "/" + name, dst = to + "/" + name;
-        struct stat st{};
-        if (stat(src.c_str(), &st) != 0) continue;
-        if (S_ISDIR(st.st_mode)) copyTree(src, dst);
-        else if (!Paths::fileExists(dst)) Paths::writeFile(dst, Paths::readFile(src));
+static void copyTree(const fs::path& source, const fs::path& destination) {
+    std::error_code error;
+    fs::create_directories(destination, error);
+    if (error) return;
+    for (fs::directory_iterator entry(source, error), end; !error && entry != end; entry.increment(error)) {
+        const fs::path target = destination / entry->path().filename();
+        if (entry->is_directory(error)) {
+            copyTree(entry->path(), target);
+        } else if (!error) {
+            fs::copy_file(entry->path(), target, fs::copy_options::skip_existing, error);
+        }
+        error.clear();
     }
-    closedir(d);
 }
 
 bool Paths::ensureDefaultConfig(const std::string& bundledPresetsDir) {
@@ -109,18 +109,22 @@ bool Paths::ensureDefaultConfig(const std::string& bundledPresetsDir) {
                                                      "Filter  2: ON  PK       Fc    45,0 Hz  Gain   2,0 dB  Q  1,00\n"
                                                      "Filter  3: OFF None   \n");
     }
-    if (!bundledPresetsDir.empty() && fileExists(bundledPresetsDir)) copyTree(bundledPresetsDir, presetsDir());
+    if (!bundledPresetsDir.empty()) copyTree(bundledPresetsDir, presetsDir());
     return true;
 }
 
 std::string Paths::executableDir() {
-    char path[4096]{};
-    ssize_t length = readlink("/proc/self/exe", path, sizeof(path) - 1);
-    if (length <= 0) return ".";
-    path[length] = '\0';
-    std::string value(path);
-    size_t slash = value.find_last_of('/');
-    return slash == std::string::npos ? "." : value.substr(0, slash);
+#if defined(_WIN32)
+    std::string path(32768, '\0');
+    const auto length = GetModuleFileNameA(nullptr, path.data(), static_cast<DWORD>(path.size()));
+    if (length == 0 || length >= path.size()) return ".";
+    path.resize(length);
+#else
+    std::error_code error;
+    auto path = fs::read_symlink("/proc/self/exe", error);
+    if (error) return ".";
+#endif
+    return fs::path(path).parent_path().generic_string();
 }
 
 }  // namespace eqapo

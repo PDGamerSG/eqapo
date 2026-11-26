@@ -1,4 +1,4 @@
-# eqapo — Equalizer APO + PC Equalizer for macOS and Linux
+# eqapo — Equalizer APO + PC Equalizer for macOS, Linux, and Windows
 
 A from-scratch macOS port of the Windows pair **Equalizer APO** (system-wide
 parametric equalizer driven by a text configuration) and **PC Equalizer**
@@ -9,13 +9,21 @@ PC Equalizer presets.
 
 * macOS 14.2 or newer, Apple silicon or Intel. No kernel extension, no
   virtual audio driver, no `sudo`.
-* Linux builds provide the portable engine, presets, WAV processing, and
-  benchmark CLI. Live system-wide capture is currently macOS-only because
-  the daemon uses Core Audio process taps.
+* Linux and Windows builds provide the offline CLI for 32-bit float WAV processing,
+  presets, tone generation, analysis, and benchmarks. Live system-wide capture
+  uses Core Audio on macOS.
 * CPU: about 0.3 % of one core for a 20-band stereo preset at 48 kHz.
 * Latency: one device buffer (default 512 frames = 10.7 ms at 48 kHz).
 
-## How it works
+## Install
+
+Download the package for your platform from the [latest release](https://github.com/PDGamerSG/eqapo/releases/latest).
+
+- **Debian / Ubuntu (64-bit Intel or AMD)** — Install with `sudo apt install ./eqapo_0.1.5_amd64.deb`, then run `eqapo --help`.
+- **Windows (64-bit Intel or AMD)** — Run the `.exe` installer. In PowerShell, run `& "$env:ProgramFiles\eqapo\bin\eqapo.exe" --help` for the default install location, or select the installer’s PATH option and open a new terminal.
+- **macOS (Apple silicon)** — Open the `.dmg`, drag `eqapo.app` into Applications, then open it from Applications.
+
+## How it works on macOS
 
 The daemon creates a Core Audio *process tap* on the default output device
 that captures the mix of every other process and mutes it while tapped, wraps
@@ -41,14 +49,16 @@ cmake -S . -B build && cmake --build build -j8
 sudo cmake --install build   # installs /usr/local/bin/eqapo and the presets
 ```
 
-On Linux, the same build produces the offline CLI. It uses
-`$XDG_CONFIG_HOME/eqapo` by default, or `EQAPO_HOME` when set.
+On Linux and Windows, CMake builds the offline CLI. Run `cpack -G DEB --config
+build/CPackConfig.cmake` on Debian or Ubuntu with `dpkg-dev` installed. For the
+Windows x64 installer, build with a Windows x64 compiler (such as MinGW-w64) and
+run `cpack -G NSIS --config build/CPackConfig.cmake` with NSIS installed. Run
+`ctest --test-dir build` to exercise the native build before packaging.
 
 ## Use
 
 The daemon, live device controls, and menu-bar app commands below are
-macOS-only. Linux builds support the offline processing, preset, generation,
-analysis, and benchmark commands.
+macOS-only. Linux and Windows support the offline commands and presets.
 
 ```sh
 eqapo install                # LaunchAgent: starts at login, restarts if it exits
@@ -61,8 +71,10 @@ eqapo config off             # pass audio through unchanged
 eqapo uninstall              # remove the LaunchAgent
 ```
 
-Configuration lives in `~/Library/Application Support/eqapo/config/config.txt`
-and uses Equalizer APO's syntax, for example:
+Run `eqapo config path` for the active configuration file. The default roots
+are `~/Library/Application Support/eqapo` on macOS, `$XDG_CONFIG_HOME/eqapo`
+(or `~/.config/eqapo`) on Linux, and `%LOCALAPPDATA%\eqapo` on Windows.
+Set `EQAPO_HOME` to override the root. The file uses Equalizer APO syntax:
 
 ```
 Preamp: -6 dB
@@ -86,8 +98,8 @@ Room EQ Wizard exports (both "Generic" and "FBQ2496" formats, comma decimals,
 "1.000" thousands) load unchanged. See the
 [Equalizer APO configuration reference](https://sourceforge.net/p/equalizerapo/wiki/Configuration%20reference/).
 
-Not supported (Windows specific): VST plugins, loudness correction, the
-pre-mix/capture stages, registry and regex expression functions.
+Not implemented in the portable engine: VST plugins, loudness correction, the
+pre-mix/capture stages, registry functions, and regex expression functions.
 
 ## Installable macOS app
 
@@ -110,6 +122,18 @@ and restarts independently if it exits. Grant macOS's System Audio Recording
 permission the first time the daemon starts.
 
 ## Releases
+
+### eqapo 0.1.5
+
+- Added a `.deb` package for Debian and Ubuntu and a Windows `.exe` installer.
+- Linux and Windows packages include the offline CLI and bundled presets.
+- The macOS `.dmg` includes the menu-bar app and its Core Audio daemon.
+
+Release assets:
+
+- `eqapo_0.1.5_amd64.deb` installs the offline CLI and presets on Debian and Ubuntu x64.
+- `eqapo-0.1.5-windows-x64-setup.exe` installs the offline CLI and presets on Windows x64.
+- `eqapo-0.1.5-macos-arm64.dmg` installs the macOS menu-bar app and Core Audio daemon.
 
 ### eqapo 0.1.4
 
@@ -154,10 +178,10 @@ eqapo analyze out.wav 100 1000                 # dBFS of each tone
 ## Project layout
 
 ```
-src/engine   portable DSP + configuration language (C++20, Accelerate FFT)
+src/engine   portable DSP + configuration language (C++20, Accelerate on macOS)
 src/daemon   Core Audio tap pipeline, device monitor, FSEvents config watcher, status
 src/cli      command line interface (single `eqapo` binary)
-src/audio    audio file reading/writing (AudioToolbox)
+src/audio    audio file reading/writing (AudioToolbox on macOS, WAV elsewhere)
 presets      PC Equalizer presets (see presets/NOTICE.md)
 gui          menu bar application (Swift)
 tests        unit tests (CTest)

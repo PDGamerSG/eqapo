@@ -1,0 +1,16 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: eqapo
+Source: https://github.com/PDGamerSG/eqapo
+
+Files: *
+Copyright: eqapo contributors
+License: GPL-2+
+ The eqapo implementation is licensed under the GNU General Public License,
+ version 2 or any later version. The full text of version 2 is available at
+ /usr/share/common-licenses/GPL-2 on Debian-based systems.
+
+Files: presets/eq/* presets/delay/*
+Copyright: Bulent Sener (PC Equalizer Free)
+License: PC Equalizer Free preset data
+ See /usr/share/eqapo/presets/NOTICE.md for the source and attribution of
+ these presets.

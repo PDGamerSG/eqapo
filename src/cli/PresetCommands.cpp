@@ -1,10 +1,8 @@
 // preset and config sub-commands.
-#include <dirent.h>
-#include <unistd.h>
-
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -17,13 +15,11 @@ namespace eqapo::cli {
 namespace {
 std::vector<std::string> listTxt(const std::string& dir) {
     std::vector<std::string> names;
-    DIR* d = opendir(dir.c_str());
-    if (!d) return names;
-    while (dirent* e = readdir(d)) {
-        std::string n = e->d_name;
-        if (StringHelper::endsWith(n, ".txt")) names.push_back(n.substr(0, n.size() - 4));
+    std::error_code error;
+    for (std::filesystem::directory_iterator entry(dir, error), end; !error && entry != end; entry.increment(error)) {
+        std::string name = entry->path().filename().string();
+        if (StringHelper::endsWith(name, ".txt")) names.push_back(name.substr(0, name.size() - 4));
     }
-    closedir(d);
     std::sort(names.begin(), names.end());
     return names;
 }
@@ -121,13 +117,13 @@ int cmdConfig(const Args& args) {
         std::string cmd = "open -t \"" + Paths::configFile() + "\"";
         return std::system(cmd.c_str());
 #else
-        std::fprintf(stderr, "config edit is not available in the Linux CLI; edit %s directly\n",
+        std::fprintf(stderr, "Open %s in a text editor\n",
                      Paths::configFile().c_str());
         return 1;
 #endif
     }
     if (sub == "reset") {
-        unlink(Paths::configFile().c_str());
+        std::remove(Paths::configFile().c_str());
         Paths::ensureDefaultConfig("");
         std::printf("reset %s to the default configuration\n", Paths::configFile().c_str());
         return 0;

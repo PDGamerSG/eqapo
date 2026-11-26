@@ -19,6 +19,11 @@ inline void traceMessage(const std::string& message) { logAt(LogLevel::Trace, me
 inline void infoMessage(const std::string& message) { logAt(LogLevel::Info, message); }
 
 // printf-style helpers
-std::string format(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+#if defined(__MINGW32__)
+__attribute__((format(gnu_printf, 1, 2)))
+#elif defined(__GNUC__) || defined(__clang__)
+__attribute__((format(printf, 1, 2)))
+#endif
+std::string format(const char* fmt, ...);
 
 }  // namespace eqapo

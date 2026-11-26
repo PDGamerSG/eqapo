@@ -9,6 +9,7 @@ trap 'rm -rf "$STAGE"' EXIT INT TERM
 
 "$ROOT/gui/make_app.sh" "$BUILD_DIR/eqapo"
 ditto --rsrc --extattr "$ROOT/gui/build/eqapo.app" "$STAGE/eqapo.app"
+cp "$ROOT/COPYING" "$STAGE/COPYING"
 ln -s /Applications "$STAGE/Applications"
 mkdir -p "$(dirname "$OUT")"
 hdiutil create -volname eqapo -srcfolder "$STAGE" -ov -format UDZO "$OUT" >/dev/null

@@ -1,6 +1,7 @@
 // eqapo — Equalizer APO + PC Equalizer command line entry point.
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -16,11 +17,14 @@
 
 namespace eqapo::cli {
 std::string bundledPresetsDir() {
-    std::string exe = Paths::executableDir();
-    const std::string candidates[] = {exe + "/../share/eqapo/presets", exe + "/presets", exe + "/../presets",
-                                      exe + "/../Resources/presets", EQAPO_SOURCE_PRESETS_DIR};
-    for (const std::string& c : candidates)
-        if (!c.empty() && Paths::fileExists(c + "/eq")) return c;
+    const std::filesystem::path exe = Paths::executableDir();
+    const std::filesystem::path candidates[] = {
+        exe / ".." / "share" / "eqapo" / "presets", exe / "presets", exe / ".." / "presets",
+        exe / ".." / "Resources" / "presets", std::filesystem::path(EQAPO_SOURCE_PRESETS_DIR)};
+    for (const auto& candidate : candidates) {
+        const auto normalized = candidate.lexically_normal();
+        if (!normalized.empty() && std::filesystem::exists(normalized / "eq")) return normalized.generic_string();
+    }
     return "";
 }
 }  // namespace eqapo::cli

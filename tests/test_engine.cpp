@@ -1,5 +1,3 @@
-#include <unistd.h>
-
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -15,16 +13,8 @@
 using namespace eqapo;
 
 namespace {
-std::string tempDir() {
-    static std::string dir;
-    if (dir.empty()) {
-        char buf[] = "/tmp/eqapo_test_XXXXXX";
-        dir = mkdtemp(buf);
-    }
-    return dir;
-}
 std::string writeFile(const std::string& name, const std::string& content) {
-    std::string path = tempDir() + "/" + name;
+    std::string path = testutil::tempPath(name);
     std::ofstream(path, std::ios::binary) << content;
     return path;
 }
@@ -207,7 +197,7 @@ TEST(engine_graphiceq_and_convolution_lines) {
     CHECK_EQ(d.size(), size_t{2});
     if (d.size() == 2) {
         CHECK_EQ(d[0], std::string("GraphicEQ 3 nodes"));
-        CHECK_EQ(d[1], std::string("Convolution " + tempDir() + "/missing.wav (inactive)"));
+        CHECK_EQ(d[1], std::string("Convolution " + testutil::tempPath("missing.wav") + " (inactive)"));
     }
 }
 
@@ -250,7 +240,7 @@ TEST(engine_reload_crossfades_without_discontinuity) {
 TEST(engine_missing_config_is_passthrough) {
     FilterEngine engine;
     engine.initialize(48000, 2, 2, 64);
-    CHECK(!engine.loadConfig(tempDir() + "/does_not_exist.txt"));
+    CHECK(!engine.loadConfig(testutil::tempPath("does_not_exist.txt")));
     std::vector<std::vector<float>> in(2, std::vector<float>(64, 0.25f)), out(2, std::vector<float>(64));
     run(engine, in, out, 64);
     CHECK_NEAR(out[1][5], 0.25, 1e-9);
